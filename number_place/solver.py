@@ -2,8 +2,13 @@
 import time
 from pathlib import Path
 from typing import List, Tuple, Optional
+import argparse
+import os
+import contextlib
+import json
+import sys
 
-# GPTによる変換
+# transpiled by GPT
 
 class Timer:
     """ インスタンスを呼び出すごとに前回の呼び出しからの経過時間を返す, また標準出力する """
@@ -205,7 +210,7 @@ def read_board_from_file(path: Path) -> List[List[int]]:
         lines = f.readlines()
     return parse_board(lines)
 
-def main(board):    
+def main(board: List[List[int]]) -> List[List[int]]:    
     sv = SolverNP(board)
     answer = sv.solve()
     
@@ -214,11 +219,52 @@ def main(board):
     else:
         for row in answer:
             print(f'{" ".join(map(str, row))}')
-        
+    
+    return answer
 
 if __name__ == "__main__":
-    board = read_board_from_file(Path("input.txt"))
-    main(board)
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--request", action='store_true')
+    args = parser.parse_args()
+    
+    if args.request:
+        response = {
+            "solution": "",
+            "message": "",
+            "error": "",
+        }
+
+        try:
+            lines = sys.stdin.read().strip().split("\n")
+            lines = [str(len(lines)), *lines]
+            # response["input"] = lines
+            response["debug"] = 1
+            board = parse_board(lines)
+            response["debug"] = 2
+            with open(os.devnull, 'w') as fnull:
+                with contextlib.redirect_stdout(fnull):
+                    response["debug"] = 3
+                    # response["board"] = board
+                    answer = main(board)
+                    response["debug"] = 4
+            response["solution"] = answer
+            response["message"] = "Solved."
+            response["debug"] = 5
+        except Exception as e:
+            response["error"] = str(e)
+            response["message"] = "Not Solved."
+            # print(str(e), file=sys.stderr)
+
+        # print("1", file=sys.stderr)
+        print(json.dumps(response))
+        # print("2", file=sys.stderr)
+        # print("123")
+        # sys.exit()
+
+    else:
+        board = read_board_from_file(Path("input.txt"))
+        main(board)
 
 
 
